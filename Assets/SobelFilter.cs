@@ -26,10 +26,10 @@ public class SobelFilter : MonoBehaviour
                 Color averageColorHorizontal = GetAverageSobelColorHorizontal(x, y);
                 Color averageColorVertical = GetAverageSobelColorVertical(x, y);
 
-                float lumV = GetLuminance(averageColorVertical);
-                float lumH = GetLuminance(averageColorHorizontal);
+                Vector3 lumV = new Vector3(averageColorHorizontal.r, averageColorHorizontal.g, averageColorHorizontal.b);
+                Vector3 lumH = new Vector3(averageColorVertical.r, averageColorVertical.g, averageColorVertical.b);
 
-                var luminance = Mathf.Sqrt(lumH * lumH + lumV * lumV);
+                float luminance = Mathf.Sqrt(Vector3.Dot(lumH,lumH) + Vector3.Dot(lumV, lumV));
 
                 edginess[x, y] = luminance;
             }
