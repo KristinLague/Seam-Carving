@@ -9,10 +9,19 @@ public class SobelFilter : MonoBehaviour
     public Texture2D appliedTex;
     public float[,] edginess;
     public float[,] pixelEnergy;
+    public bool Carve;
 
     void Start()
     {
         ApplySobel();
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+            CarveSeam();
+        }
     }
 
     void ApplySobel()
@@ -44,8 +53,8 @@ public class SobelFilter : MonoBehaviour
             for (int y = 0; y < image.height; y++)
             {
                 float luminance = edginess[x, y];
-                Color newCol = new Color(luminance, luminance, luminance, 1);
-                appliedTex.SetPixel(x,y,newCol);
+                //Color newCol = new Color(luminance, luminance, luminance, 1);
+                appliedTex.SetPixel(x,y,image.GetPixel(x,y));
             }
         }
 
@@ -56,6 +65,37 @@ public class SobelFilter : MonoBehaviour
         
         appliedTex.Apply();
         imageRenderer.material.mainTexture = appliedTex;
+    }
+
+    private void CarveSeam()
+    {
+        Debug.Log("CALLED");
+        Texture2D adjustedTexture = new Texture2D(appliedTex.width - 1, appliedTex.height);
+        var bestSeamToCarve = GetSeamToCarve();
+        bestSeamToCarve.Reverse();
+        
+        for (int y = 0; y < appliedTex.height; y++)
+        {
+            var pixelToCut = bestSeamToCarve[y];
+            int newX = 0;
+            
+            for (int x = 0; x < appliedTex.width; x++)
+            {
+                if (x != pixelToCut.x)
+                {
+                    adjustedTexture.SetPixel(newX,y,appliedTex.GetPixel(x,y));
+                    newX++;
+                }
+            }
+        }
+        
+        adjustedTexture.Apply();
+        appliedTex = adjustedTexture;
+        imageRenderer.gameObject.transform.localScale = new Vector3(appliedTex.width / 100f, appliedTex.height/100f, 1f);
+        imageRenderer.material.mainTexture = appliedTex;
+        image = adjustedTexture;
+        ApplySobel();
+        Carve = false;
     }
 
     private Color GetAverageSobelColorHorizontal(int x, int y)
@@ -73,7 +113,7 @@ public class SobelFilter : MonoBehaviour
         var gxZb = (x - 1 < 0 || y - 1 < 0) ? Color.clear : image.GetPixel(x - 1, y - 1);
         var gxZ = gxZa - gxZb;
 
-        return (gxX + gxY + gxZ) / 3f;
+        return (gxX + gxY + gxZ);
     }
 
     private Color GetAverageSobelColorVertical(int x, int y)
@@ -90,12 +130,7 @@ public class SobelFilter : MonoBehaviour
         var gyZb = (x + 1 >= image.width || y + 1 >= image.height) ? Color.clear : image.GetPixel(x + 1, y + 1);
         var gyZ = gyZb - gyZa;
 
-        return (gyX + gyY + gyZ) / 3f;
-    }
-
-    private float GetLuminance(Color color)
-    {
-        return (float) (0.299 * color.r + 0.587 * color.g + 0.114 * color.b);
+        return (gyX + gyY + gyZ);
     }
 
     private void GetPixelEnergy()
@@ -123,9 +158,10 @@ public class SobelFilter : MonoBehaviour
         paths[0] = x - 1 < 0 ? 1 : pixelEnergy[x - 1, y - 1];
         paths[1] = pixelEnergy[x, y - 1];
         paths[2] = x + 1 >= appliedTex.width ? 1 : pixelEnergy[x + 1, y - 1];
-
-       // Debug.Log("texwidth" + appliedTex.width);
-        return edginess[x,y] + Mathf.Min(paths);
+        
+        var result = edginess[x,y] + Mathf.Min(paths);
+        //Debug.Log($"Position {x},{y} -> {result}");
+        return result;
     }
 
     private List<Vector2Int> GetSeamToCarve()
@@ -134,18 +170,18 @@ public class SobelFilter : MonoBehaviour
         Vector2Int startPos = new Vector2Int(0, appliedTex.height - 1);
         for (int x = 0; x < appliedTex.width; x++)
         {
-            //Debug.Log("ENERGY "+ pixelEnergy[x,appliedTex.height - 1] + " X" + x );
             if (pixelEnergy[x, appliedTex.height - 1] < pixelEnergy[startPos.x, startPos.y])
                 startPos.x = x;
         }
         path.Add(startPos);
         
-        for (int y = appliedTex.height - 2; y > 0; y--)
+        for (int y = appliedTex.height - 1; y > 0; y--)
         {
             Vector2Int nextStep = GetLowestEnergyPixelBelow(path[path.Count - 1].x, y);
             path.Add(nextStep);
         }
 
+        Debug.Log(path.Count);
         return path;
     }
 
