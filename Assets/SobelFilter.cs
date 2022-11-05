@@ -18,6 +18,7 @@ public class SobelFilter : MonoBehaviour
     private Texture2D edgyVis;
     float[,] edginess;
     float[,] pixelEnergy;
+    private Vector2Int[] bestSeam;
     private float maxEnergy;
     
     void Start()
@@ -29,20 +30,40 @@ public class SobelFilter : MonoBehaviour
         processedTex.SetPixels(original.GetPixels());
         processedTex.Apply();
         
+        Recalculate();
+        UpdateVis();
+        UpdateImageSize();
+    }
+
+    void Recalculate()
+    {
         CalculateEdginess();
         CalculateEnergy();
-        
+        bestSeam = GetSeamToCarve().ToArray();
+    }
+
+    void UpdateVis()
+    {
         energyVis = VisualizeEnergy();
         edgyVis = VisualizeEdginess();
-        
-        SeamStuff();
+        ShowSeam(bestSeam);
+    }
+
+    void UpdateImageSize()
+    {
+        originalDisplay.transform.localScale = new Vector3(1, original.height / (float) original.width);
+        processedDisplay.transform.localScale = new Vector3(processedTex.width/(float)original.width, original.height / (float) original.width);
+
     }
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.A))
+        if (Input.GetKeyDown(KeyCode.C))
         {
-            CarveSeam();
+            Debug.Log("Carve");
+            CarveSeam(bestSeam);
+            Recalculate();
+            UpdateVis();
         }
 
         switch (mode)
@@ -77,29 +98,24 @@ public class SobelFilter : MonoBehaviour
         }
     }
 
-    void SeamStuff()
+    void ShowSeam(Vector2Int[] seamPoints)
     {
-        CalculateEnergy();
-        var bestSeamToCarve = GetSeamToCarve();
-
-        foreach (var seam in bestSeamToCarve)
+        foreach (var point in seamPoints)
         {
-            processedTex.SetPixel(seam.x, seam.y, Color.magenta);
+            processedTex.SetPixel(point.x, point.y, Color.magenta);
         }
         processedTex.Apply();
     }
     
 
-    private void CarveSeam()
+    private void CarveSeam(Vector2Int[] seamPoints)
     {
-        Debug.Log("CALLED");
+       
         Texture2D adjustedTexture = new Texture2D(processedTex.width - 1, processedTex.height);
-        var bestSeamToCarve = GetSeamToCarve();
-        bestSeamToCarve.Reverse();
-        
+
         for (int y = 0; y < processedTex.height; y++)
         {
-            var pixelToCut = bestSeamToCarve[y];
+            var pixelToCut = seamPoints[seamPoints.Length-1-y];
             int newX = 0;
             
             for (int x = 0; x < processedTex.width; x++)
@@ -114,10 +130,8 @@ public class SobelFilter : MonoBehaviour
         
         adjustedTexture.Apply();
         processedTex = adjustedTexture;
-        processedDisplay.gameObject.transform.localScale = new Vector3(1, processedTex.height/(float)processedTex.width, 1f);
         processedDisplay.material.mainTexture = processedTex;
-        
-        CalculateEdginess();
+        UpdateImageSize();
     }
 
     private Color GetAverageSobelColorHorizontal(int x, int y)
