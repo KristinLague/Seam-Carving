@@ -155,7 +155,7 @@ MonoBehaviour:
   mode: 0
   originalDisplay: {fileID: 969072359}
   processedDisplay: {fileID: 878869701}
-  original: {fileID: 2800000, guid: 03681d9f155f94109aa87b6e822bc3e8, type: 3}
+  original: {fileID: 2800000, guid: 9d287f547e45e4f7aa033e814c4583a9, type: 3}
 --- !u!4 &226991278
 Transform:
   m_ObjectHideFlags: 0
