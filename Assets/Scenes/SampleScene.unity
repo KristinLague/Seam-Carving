@@ -156,7 +156,6 @@ MonoBehaviour:
   originalDisplay: {fileID: 969072359}
   processedDisplay: {fileID: 878869701}
   original: {fileID: 2800000, guid: 03681d9f155f94109aa87b6e822bc3e8, type: 3}
-  processedTex: {fileID: 0}
 --- !u!4 &226991278
 Transform:
   m_ObjectHideFlags: 0

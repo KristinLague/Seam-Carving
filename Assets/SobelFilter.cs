@@ -25,12 +25,17 @@ public class SobelFilter : MonoBehaviour
         originalDisplay.material.mainTexture = original;
         
         processedTex = new Texture2D(original.width, original.height);
+        processedTex.filterMode = FilterMode.Point;
         processedTex.SetPixels(original.GetPixels());
         processedTex.Apply();
         
-        ApplySobel();
+        CalculateEdginess();
+        CalculateEnergy();
+        
         energyVis = VisualizeEnergy();
         edgyVis = VisualizeEdginess();
+        
+        SeamStuff();
     }
 
     void Update()
@@ -51,7 +56,7 @@ public class SobelFilter : MonoBehaviour
         }
     }
 
-    void ApplySobel()
+    void CalculateEdginess()
     {
         edginess = new float[processedTex.width, processedTex.height];
         //Looping through every pixel of the texture
@@ -70,19 +75,20 @@ public class SobelFilter : MonoBehaviour
                 edginess[x, y] = luminance;
             }
         }
-
-        GetPixelEnergy();
-        var bestSeamToCarve = GetSeamToCarve();
-        
-      
-        foreach (var pixel in bestSeamToCarve)
-        {
-            //appliedTex.SetPixel(pixel.x,pixel.y,Color.magenta);
-        }
-        
-        processedTex.Apply();
-        processedDisplay.material.mainTexture = processedTex;
     }
+
+    void SeamStuff()
+    {
+        CalculateEnergy();
+        var bestSeamToCarve = GetSeamToCarve();
+
+        foreach (var seam in bestSeamToCarve)
+        {
+            processedTex.SetPixel(seam.x, seam.y, Color.magenta);
+        }
+        processedTex.Apply();
+    }
+    
 
     private void CarveSeam()
     {
@@ -111,7 +117,7 @@ public class SobelFilter : MonoBehaviour
         processedDisplay.gameObject.transform.localScale = new Vector3(1, processedTex.height/(float)processedTex.width, 1f);
         processedDisplay.material.mainTexture = processedTex;
         
-        ApplySobel();
+        CalculateEdginess();
     }
 
     private Color GetAverageSobelColorHorizontal(int x, int y)
@@ -149,10 +155,11 @@ public class SobelFilter : MonoBehaviour
         return (gyX + gyY + gyZ);
     }
 
-    private void GetPixelEnergy()
+    private void CalculateEnergy()
     {
         pixelEnergy = new float[processedTex.width, processedTex.height];
         maxEnergy = 0;
+        
         for (int y = 0; y < processedTex.height; y++)
         {
             for (int x = 0; x < processedTex.width; x++)
@@ -174,7 +181,7 @@ public class SobelFilter : MonoBehaviour
     Texture2D VisualizeEnergy()
     {
         Texture2D energyVis = new Texture2D(processedTex.width, processedTex.height);
-        
+        energyVis.filterMode = FilterMode.Point;
         for (int y = 0; y < energyVis.height; y++)
         {
             for (int x = 0; x < energyVis.width; x++)
@@ -190,7 +197,7 @@ public class SobelFilter : MonoBehaviour
     Texture2D VisualizeEdginess()
     {
         Texture2D edgyVis = new Texture2D(processedTex.width, processedTex.height);
-        
+        edgyVis.filterMode = FilterMode.Point;
         for (int y = 0; y < edgyVis.height; y++)
         {
             for (int x = 0; x < edgyVis.width; x++)
@@ -206,9 +213,9 @@ public class SobelFilter : MonoBehaviour
     private float GetLowestEnergyForPixel(int x, int y)
     {
         float[] paths = new float[3];
-        paths[0] = x - 1 < 0 ? 1 : pixelEnergy[x - 1, y - 1];
+        paths[0] = x - 1 < 0 ? float.MaxValue : pixelEnergy[x - 1, y - 1];
         paths[1] = pixelEnergy[x, y - 1];
-        paths[2] = x + 1 >= processedTex.width ? 1 : pixelEnergy[x + 1, y - 1];
+        paths[2] = x + 1 >= processedTex.width ? float.MaxValue : pixelEnergy[x + 1, y - 1];
         
         var result = edginess[x,y] + Mathf.Min(paths);
         //Debug.Log($"Position {x},{y} -> {result}");
