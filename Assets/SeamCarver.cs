@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 
-public class SobelFilter : MonoBehaviour
+public class SeamCarver : MonoBehaviour
 {
     public enum DisplayMode {Image, Edginess, Energy}
     public DisplayMode mode;
